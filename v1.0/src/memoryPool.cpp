@@ -1,10 +1,11 @@
 #include "../include/memoryPool.h"
+#include "memoryPool.h"
 using std::lock_guard;
 using std::mutex;
-using std::size_t;
 using std::uintptr_t;
-
-
+using std::size_t;
+using std::vector;
+using std::runtime_error;
 namespace memoryPool {
 
 MemoryPool::~MemoryPool() {
@@ -53,6 +54,7 @@ void MemoryPool::deallocate(Slot *freeSlot) {
     _freeList = freeSlot;
 }
 
+/// @attention 是不是需要将加锁操作放在实现函数中，这样同步意图更加明显，更加具体
 void MemoryPool::newBlock() {
 /// @brief 因为是具体的实现函数，而加锁操作已经在接口函数完成了，所以仍然保持同步
     Slot *newblock = reinterpret_cast<Slot*>(operator new(_blockSize));
@@ -86,4 +88,19 @@ void MemoryPool::pushFreeList(Slot *slot) {
     _freeList = slot;
 }
 
+vector<MemoryPool> HashBucket::_memoryPoolSet(HASH_BACKET_SIZE);
+bool HashBucket::_initFlag = false;
+
+void HashBucket::initMemoryPoolSet() {
+    for(size_t i = 0; i < SLOT_MAX_SIZE; ++i) {
+        _memoryPoolSet[i].init(SLOT_BASE_SIZE + i * SLOT_BASE_SIZE);
+    }
+}
+
+MemoryPool &HashBucket::getMemoryPool(std::size_t sz)
+{
+    if(sz == 0)
+        throw runtime_error("the allocated size is empty that is wrong.");
+    return _memoryPoolSet[(sz + SLOT_BASE_SIZE - 1) / SLOT_BASE_SIZE - 1];
+}
 }
