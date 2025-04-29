@@ -1,6 +1,7 @@
 #ifndef V_1_0_MEMORYPOOL_H
 #define V_1_0_MEMORYPOOL_H
 
+/// @warning origin three define in the namespace memoryPool
 #define HASH_BACKET_SIZE 64
 #define SLOT_BASE_SIZE 8
 #define SLOT_MAX_SIZE 512
@@ -84,8 +85,15 @@ inline T *newElement(Args... args) {
         HashBucket::_initFlag = true;
     }
 
-    // 先分配内存
-    T* ptr = reinterpret_cast<T*>(HashBucket::getMemoryPool(sizeof(T)).allocate());
+    // 先分配内存，需要判断内存大小是否在SLOT_BASE_SIZE - SLOT_MAX_SIZE之间
+    auto sz = sizeof(T);
+    T *ptr;
+    if(sz > SLOT_MAX_SIZE)
+        ptr = operator new(sz);
+    else if(sz <= SLOT_MAX_SIZE && sz > 0)
+        ptr = reinterpret_cast<T*>(HashBucket::getMemoryPool(sizeof(T)).allocate());
+    else 
+        throw runtime_error("the allocated size is empty that is wrong.");
     // 再使用定位new构造元素
     new (ptr)(std::forward<Args>(args)...);
     return ptr;
@@ -93,10 +101,15 @@ inline T *newElement(Args... args) {
 
 template <typename T>
 inline void deleteElement(T *ptr) {
+/// @attention 对于指针，一定要有有效判断操作
+    if(ptr == nullptr)  return;
     // 先析构元素
     ptr->~T();
     // 再回收内存
-    HashBucket::getMemoryPool(sizeof(T)).deallocate(reinterpret_cast<Slot *>(ptr));
+    if(sizeof(T) > 512)
+        operator delete(ptr);
+    else
+        HashBucket::getMemoryPool(sizeof(T)).deallocate(reinterpret_cast<Slot *>(ptr));
 }
 
 }

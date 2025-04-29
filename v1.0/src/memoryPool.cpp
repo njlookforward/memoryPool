@@ -31,6 +31,8 @@ void *MemoryPool::allocate() {
 /// @brief 需要在大内存块中分配出一个slot，因此_freeList and _curSlot就是临界资源，进行分配的操作就是临界区，需要进行同步操作
 /// @details 首先应该在_freeList中申请空闲slot，若分配失败，再在_curSlot中分配slot，若继续失败，那么应该向操作系统申请新的
 /// 一整块大内存，然后进行分配
+/// 在示例文件中，尽管已经判断过_freeList是否为空，但是因为是多线程的环境，可能别的线程已经加锁导致为空
+/// 因此需要再次进行判断_freeList是否为空
     {
         lock_guard<mutex> freeListLock(_mutexForFreeList);
         void *newSlot = popFreeList();
@@ -99,8 +101,15 @@ void HashBucket::initMemoryPoolSet() {
 
 MemoryPool &HashBucket::getMemoryPool(std::size_t sz)
 {
-    if(sz == 0)
-        throw runtime_error("the allocated size is empty that is wrong.");
     return _memoryPoolSet[(sz + SLOT_BASE_SIZE - 1) / SLOT_BASE_SIZE - 1];
 }
 }
+
+/**
+ * @warning 
+ * 1. allocate(): _freeList != nullptr的判断
+ * 2. allocate(): _curSlot值的更新 _curSlot += _slotSize / sizeof(Slot);
+ * 3. deallocate(): 需要判断形参指针是否为空
+ * 4. init(): 需要使用assert()进行判断
+ * 
+*/
