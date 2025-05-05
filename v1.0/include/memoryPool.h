@@ -115,4 +115,5 @@ inline void deleteElement(T *ptr) {
 }
 
 }
+
 #endif
