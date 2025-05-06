@@ -63,6 +63,7 @@ private:
     std::map<void*, Span*> _spanMap;        // <分配内存地址_pageAddr, 链表指针_span*>
     std::mutex _mutex;  // 互斥锁
 
+public:
     static const size_t PAGE_SIZE = 4096;
 };
 

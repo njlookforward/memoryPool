@@ -76,6 +76,7 @@ void *PageCache::allocateSpan(size_t pageNums) {
  * 3) 待回收的内存需要添加到_freeSpans中，但是可能在自由链表中存在相邻内存块，如果存在需要进行合并操作
  * 4) 如果存在相邻内存块，那么需要先在自由链表中找到目标内存块，然后更新自由链表，将相邻内存块合并到待回收内存块中，然后更新_spanMap
  * 也就是删除被合并的内存块管理员，然后把已经合并后的span管理员添加到自由链表中
+ * @attention 注意在这个函数中，并没有使用到第二个形参pageNums
 */
 void PageCache::deallocateSpan(void *ptr, size_t pageNums) {
     std::lock_guard<std::mutex> _lock(_mutex);
