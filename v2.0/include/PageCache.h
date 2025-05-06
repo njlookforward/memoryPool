@@ -5,8 +5,13 @@
 using std::size_t;
 
 #include <map>
-#include <mutex>    // 因为申请PageCache次数并不多，因此采用互斥锁进行同步操作就可以
+using std::map;
 
+#include <mutex>    // 因为申请PageCache次数并不多，因此采用互斥锁进行同步操作就可以
+using std::mutex; using std::lock_guard;
+
+#include <utility>
+using std::pair;
 
 /**
  * @brief 作为内存池三级缓存的最底层，所有ThreadCache共享一个PageCache

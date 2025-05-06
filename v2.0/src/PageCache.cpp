@@ -1,4 +1,6 @@
 #include "../include/PageCache.h"
+#include <sys/mman.h>
+#include <cstring>
 
 // 南江，你是一个天才，只要你想，只要你去付出行动，就一定可以实现目标，不要忘了，20行20行的的向前走
 
@@ -126,11 +128,33 @@ void PageCache::deallocateSpan(void *ptr, size_t pageNums) {
 }
 
 PageCache::~PageCache() {
-    // TODO
+    /**
+     * @brief 析构函数负责释放从操作系统申请的资源，包括大内存块和内存块管理员
+     * @details 关键数据结构_freeSpans and _spanMap，_freeSpans仅仅是记录自由链表，真正记录申请的内存块和相应的管理员是_spanMap
+     * 因此应该对照_spanMap去释放资源
+     * @remark 原项目文件中没有析构函数的定义，也就是没有相应的资源回收机制，因此需要deepseek，检查我的析构函数设计是否正确
+     * 而且切割与合并问题，应该如何解决
+    */
+   for (pair<void*, Span*> entry : _spanMap)
+   {
+        // 因为内存块多次进行切割与合并，使用operator delete相应的指针，能够和操作系统中保存的元数据中的大小一致吗
+        // 用mmap申请内存，也应该用munmap释放内存，或者是不是大块内存可以系统自动回收，但是Span肯定需要手动释放的
+        operator delete(entry.first);
+        delete entry.second;
+   }
 }
 
 void *PageCache::systemAlloc(size_t pageNums) {
-    //TODO
+    size_t size = pageNums * PAGE_SIZE;
+
+    void *ptr = mmap(nullptr, size, PROT_READ | PROT_WRITE,
+    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    // 检验是否映射成功
+    if(ptr == MAP_FAILED) return nullptr;
+
+    // 清理内存
+    memset(ptr, 0, size);
+    return ptr;
 }
 
-}
+}   // namespace memoryPool
