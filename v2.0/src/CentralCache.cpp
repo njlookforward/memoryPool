@@ -47,6 +47,7 @@ void *CentralCache::fetchRange(size_t index) {
             char *start = reinterpret_cast<char*>(result);
             size_t blockNum = SPAN_PAGES * PageCache::PAGE_SIZE / size;
             // 只有1块以上才有意义进行内存间的连接，并更新中心缓存的自由链表，仅仅1块不需要做接下来的事情
+            // 只要size在32KB以内才会有足够切割成2块以上的可能，过大的内存只可能分配足够一块的内存大小
             if(blockNum > 1) {
                 for(size_t i = 1; i < blockNum; i++) {
                     void *current = reinterpret_cast<void*>(start + (i - 1) * size);
@@ -103,7 +104,7 @@ void CentralCache::returnRange(void *start, size_t index) {
         _centralFreeList[index].store(start, std::memory_order_release);
     } catch(...) {
         _locks[index].clear();
-        return;
+        throw;  // 对于异常处理，使用的是throw
     }
 
     _locks[index].clear(std::memory_order_release);
@@ -125,7 +126,19 @@ CentralCache::CentralCache() {
 }
 
 void *CentralCache::fetchFromPageCache(size_t size) {
-    // TODO
+    /**
+     * @brief CentralCache向下一层PageCache申请内存，需要根据所需内存的实际大小决定分配策略
+     * 1) 如果小于32KB，就按照固定的8页进行申请
+     * 2) 如果大于32KB，就根据所需大小对应的实际页数进行申请
+    */
+
+   if(size <= SPAN_PAGES * PageCache::PAGE_SIZE) {
+        return PageCache::getInstance().allocateSpan(SPAN_PAGES);
+   } else {
+        // 所需内存大小对应的真是内存页数
+        int pageNums = (size + PageCache::PAGE_SIZE - 1) / PageCache::PAGE_SIZE;
+        return PageCache::getInstance().allocateSpan(pageNums);
+   }
 }
 
 void CentralCache::returnToPageCache(void *ptr, size_t pageNums) {
