@@ -35,7 +35,7 @@ void *CentralCache::fetchRange(size_t index) {
         result = _centralFreeList[index].load(std::memory_order_relaxed);
         if(!result) {
             // 自由链表中没有空闲内存块，只能去PageCache请求分配内存
-            size_t size = (index + 1) * ALIGNS;
+            size_t size = (index + 1) * ALIGNMENT;
             result = fetchFromPageCache(size);
             if(!result) {
                 // 说明分配失败
@@ -143,6 +143,7 @@ void *CentralCache::fetchFromPageCache(size_t size) {
 
 void CentralCache::returnToPageCache(void *ptr, size_t pageNums) {
     // TODO
+    // 疑问：为什么没有设计这个函数呢？
 }
 
 }

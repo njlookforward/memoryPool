@@ -6,9 +6,9 @@
 
 namespace memoryPool {
 
-#define ALIGNS 8
-#define MAX_SIZE 256 * 1024
-#define FREE_LIST_SIZE MAX_SIZE/ALIGNS
+constexpr size_t ALIGNMENT = 8;
+constexpr size_t MAX_BYTES = 256 * 1024;
+constexpr size_t FREE_LIST_SIZE = MAX_BYTES / ALIGNMENT;
 
 }
 
